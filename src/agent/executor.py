@@ -6,6 +6,7 @@ import json
 from typing import Any
 import dotenv
 from src.agent.prompt import CONTEXT_TEMPLATE
+from src.agent.instruction import INSTRUCTION_HYPE
 
 dotenv.load_dotenv()
 
@@ -17,7 +18,8 @@ def format_sse(payload: dict[str, Any]) -> str:
 class Executor:
     def __init__(self, model: str = "gpt-5.1"):
         self.agent = self._create_agent(
-            model=model
+            model=model,
+            instructions=INSTRUCTION_HYPE
         )
         self.result = None
 
@@ -42,7 +44,7 @@ class Executor:
         model: str = "gpt-5.1", 
         reasoning_effort: ReasoningEffort = "medium",
         verbosity: Literal["low", "medium", "high"] | None = None,
-        instructions: str = "You are a helpful assistant that can help with research tasks. You are given a task and you need to complete it.",
+        instructions: str = INSTRUCTION_HYPE,
     ):
         model_settings=ModelSettings(
             reasoning=Reasoning(
