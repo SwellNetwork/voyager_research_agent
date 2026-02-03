@@ -1,16 +1,20 @@
-import asyncio
 import json
+import os
 import re
 import textwrap
+import uuid
 from pathlib import Path
+from urllib import error as urlerror
+from urllib import request as urlrequest
 
 import streamlit as st
 import streamlit.components.v1 as components
 
-from src.agent.session_manager import SessionManager
-
 REPORT_PATH = Path("resource/HYPE_analysis_with_charts.md")
 SECTION_LIMIT = 11
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8082").rstrip("/")
+CHAT_ENDPOINT = f"{API_BASE_URL}/v1/chat"
+REQUEST_TIMEOUT_SECONDS = float(os.getenv("API_TIMEOUT_SECONDS", "600"))
 
 def _iter_sse_payloads(sse_blob: str) -> list[dict]:
     payloads: list[dict] = []
@@ -27,17 +31,42 @@ def _iter_sse_payloads(sse_blob: str) -> list[dict]:
     return payloads
 
 
+def _new_session_id() -> str:
+    return f"sess_{uuid.uuid4().hex}"
+
+
+def _stream_chat_api(session_id: str, query: str, context: str = ""):
+    payload = {
+        "query": query,
+        "session_id": session_id,
+        "context": context,
+    }
+    data = json.dumps(payload).encode("utf-8")
+    request = urlrequest.Request(
+        CHAT_ENDPOINT,
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        },
+        method="POST",
+    )
+    with urlrequest.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+        for raw_line in response:
+            if not raw_line:
+                continue
+            yield raw_line.decode("utf-8", errors="ignore")
+
+
 def _run_stream(
-    session_manager: SessionManager,
     session_id: str,
     query: str,
     placeholder: st.delta_generator.DeltaGenerator,
     context: str = "",
 ) -> str:
     state: dict[str, str | list[str]] = {"final": "", "parts": []}
-
-    async def _stream() -> None:
-        async for sse_blob in session_manager.stream_chat(query, session_id, context=context):
+    try:
+        for sse_blob in _stream_chat_api(session_id, query, context=context):
             for payload in _iter_sse_payloads(sse_blob):
                 event_type = payload.get("type")
                 content = payload.get("content", "")
@@ -48,8 +77,13 @@ def _run_stream(
                     if content:
                         state["final"] = content
                         placeholder.markdown(content)
+    except urlerror.HTTPError as exc:
+        placeholder.markdown(f"Chat API error (HTTP {exc.code}).")
+    except urlerror.URLError as exc:
+        placeholder.markdown(f"Could not reach chat API. {exc.reason}")
+    except Exception as exc:
+        placeholder.markdown(f"Chat API failed. {exc}")
 
-    asyncio.run(_stream())
     return state["final"] or "".join(state["parts"])
 
 
@@ -59,44 +93,18 @@ def _trim_sidebar_text(text: str, width: int = 60) -> str:
         return ""
     return textwrap.shorten(cleaned, width=width, placeholder="...")
 
-def _stringify_content(content: object) -> str:
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for part in content:
-            if isinstance(part, str):
-                parts.append(part)
-            elif isinstance(part, dict):
-                text = part.get("text")
-                if isinstance(text, str):
-                    parts.append(text)
-        return "\n\n".join([p for p in parts if p.strip()])
-    if isinstance(content, dict):
-        text = content.get("text")
-        if isinstance(text, str):
-            return text
+def _get_session_preview(session_id: str) -> str:
+    messages = st.session_state.messages_by_session.get(session_id, [])
+    for message in reversed(messages):
+        content = message.get("content", "")
+        if isinstance(content, str) and content.strip():
+            return content
     return ""
 
 
-def _normalize_loaded_messages(items: list[dict]) -> list[dict]:
-    messages: list[dict] = []
-    for item in items:
-        role = item.get("role")
-        if role not in {"user", "assistant"}:
-            continue
-        content = _stringify_content(item.get("content"))
-        messages.append({"role": role, "content": content})
-    return messages
-
-
 def _load_session_conversation(session_id: str) -> None:
-    session_manager = st.session_state.session_manager
-    if session_id not in session_manager.sessions:
-        asyncio.run(session_manager.create_session(session_id))
-    items = asyncio.run(session_manager._load_conversation(session_id, True))
     st.session_state.active_session_id = session_id
-    st.session_state.messages = _normalize_loaded_messages(items)
+    st.session_state.messages_by_session.setdefault(session_id, [])
 
 def _parse_report_sections(path: Path) -> list[dict]:
     md_text = path.read_text(encoding="utf-8").replace("](charts/", "](resource/charts/")
@@ -232,16 +240,20 @@ def run() -> None:
     st.set_page_config(page_title="Voyager Research Agent", page_icon="🧭", layout="wide")
     st.title("Voyager Research Agent")
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    if "session_manager" not in st.session_state:
-        st.session_state.session_manager = SessionManager()
+    if "messages_by_session" not in st.session_state:
+        st.session_state.messages_by_session = {}
+    if "session_ids" not in st.session_state:
+        st.session_state.session_ids = []
     if "active_session_id" not in st.session_state:
-        st.session_state.active_session_id = asyncio.run(
-            st.session_state.session_manager.create_session()
-        )
+        new_session_id = _new_session_id()
+        st.session_state.active_session_id = new_session_id
+        st.session_state.session_ids.insert(0, new_session_id)
+        st.session_state.messages_by_session[new_session_id] = []
     if "context_by_session" not in st.session_state:
         st.session_state.context_by_session = {}
+    if st.session_state.active_session_id not in st.session_state.session_ids:
+        st.session_state.session_ids.insert(0, st.session_state.active_session_id)
+    st.session_state.messages_by_session.setdefault(st.session_state.active_session_id, [])
     st.markdown(
         """
         <style>
@@ -286,20 +298,17 @@ def run() -> None:
                     st.subheader("Chat History")
                 with header_cols[1]:
                     if st.button("🆕", key="new-session", use_container_width=True, help="New chat"):
-                        new_session_id = asyncio.run(
-                            st.session_state.session_manager.create_session()
-                        )
+                        new_session_id = _new_session_id()
                         st.session_state.active_session_id = new_session_id
-                        st.session_state.messages = []
-                session_ids = st.session_state.session_manager.session_ids or list(
-                    st.session_state.session_manager.sessions.keys()
+                        st.session_state.messages_by_session[new_session_id] = []
+                        st.session_state.session_ids.insert(0, new_session_id)
+                session_ids = st.session_state.session_ids or list(
+                    st.session_state.messages_by_session.keys()
                 )
                 if session_ids:
                     for session_id in session_ids:
-                        preview = st.session_state.session_manager.get_session_preview(session_id)
-                        if not preview:
-                            continue
-                        label = _trim_sidebar_text(preview)
+                        preview = _get_session_preview(session_id)
+                        label = _trim_sidebar_text(preview) if preview else "New session"
                         if session_id == st.session_state.active_session_id:
                             label = f"▶ {label}"
                         if st.button(label, key=f"session-{session_id}"):
@@ -320,13 +329,19 @@ def run() -> None:
                             st.markdown("**Context**")
                             with st.expander("Show context"):
                                 st.markdown(context_text)
-                    for message in st.session_state.messages:
+                    messages = st.session_state.messages_by_session.get(
+                        st.session_state.active_session_id, []
+                    )
+                    for message in messages:
                         st.chat_message(message["role"]).markdown(message["content"])
 
                 with st.container(key="chat-input"):
                     prompt = st.chat_input("Ask a question", key="chat_input")
                     if prompt:
-                        st.session_state.messages.append({"role": "user", "content": prompt})
+                        messages = st.session_state.messages_by_session.setdefault(
+                            st.session_state.active_session_id, []
+                        )
+                        messages.append({"role": "user", "content": prompt})
                         context_text = st.session_state.context_by_session.get(
                             st.session_state.active_session_id, ""
                         )
@@ -336,16 +351,13 @@ def run() -> None:
                             with st.chat_message("assistant"):
                                 assistant_placeholder = st.empty()
                                 response_text = _run_stream(
-                                    st.session_state.session_manager,
                                     st.session_state.active_session_id,
                                     prompt,
                                     assistant_placeholder,
                                     context=context_text,
                                 )
 
-                        st.session_state.messages.append(
-                            {"role": "assistant", "content": response_text}
-                        )
+                        messages.append({"role": "assistant", "content": response_text})
 
     with report_tab:
         report_container = st.container(key="report-panel")
