@@ -7,6 +7,7 @@ from typing import Any
 import dotenv
 from src.agent.prompt import CONTEXT_TEMPLATE
 from src.agent.instruction import INSTRUCTION_HYPE
+from src.agent.tools.get_report_data import get_report_data
 
 dotenv.load_dotenv()
 
@@ -51,11 +52,15 @@ class Executor:
                 effort=reasoning_effort), 
             verbosity=verbosity
         )
+        tools = [
+            get_report_data,
+        ]
         agent = Agent(
             name=name,
             model=model,
             model_settings=model_settings,
             instructions=instructions,
+            tools=tools,
         )
         return agent
 

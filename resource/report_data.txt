@@ -1,0 +1,120 @@
+# HYPE MARKET DATA
+
+## Current Snapshot
+- Current Price: $30.21
+- 24h Change: -3.14%
+- 7d Change: -0.53%
+- 30d Change: +9.57%
+- Market Cap: $7,203,627,319
+- 24h Volume: $728,314,064
+
+## Price History & Technicals
+- RSI (14): 47.6
+- MACD: 0.1620
+- MACD Signal: 0.1594
+- MACD Histogram: 0.0026
+- SMA 50: $30.34
+- SMA 200: $30.61
+- EMA 50: $30.38
+- EMA 200: $30.61
+- 24h Volatility: 1.63%
+
+## Derivatives Data
+### Funding Rates by Exchange
+| Exchange | Rate (Ann.) |
+|----------|-------------|
+| Binance | +5.47% |
+| Bybit | +10.95% |
+| Hyperliquid | +10.95% |
+| Lighter | +10.51% |
+
+**Average Rate:** +9.47%
+
+### Open Interest by Exchange
+| Exchange | Open Interest (USD) |
+|----------|---------------------|
+| binance | $175,867,994 |
+| bybit | $240,602,473 |
+| hyperliquid | $726,317,540 |
+
+**Total OI:** $1,142,788,007
+
+### Long/Short Ratios
+- Overall L/S Ratio: 1.93
+- Binance: 1.84
+- Bybit: 3.19
+- Gate: 0.86
+- Okx: 2.05
+
+## Liquidation Data
+- Current Price: $30.79
+- Total Long Liquidation Volume: $107,088,772
+- Total Short Liquidation Volume: $69,231,919
+- Liquidation Bias: -0.21 (positive = more shorts at risk)
+
+## Options Data (if BTC/ETH)
+Not available for this token
+
+## ETF Flows (if BTC/ETH)
+Not available for this token
+
+## On-Chain Metrics
+Not available
+
+## Capital Flows
+Not available
+
+## Sentiment Data
+### Fear & Greed Index
+- Current Value: 8
+- Classification: Extreme Fear
+- 1d Change: +0
+
+### Social Sentiment
+Not available
+
+## Macro Context
+- DXY: 97.24
+- GOLD: 4,562.30
+- OIL: 61.60
+- SPX: 6,939.03
+- VIX: 17.44
+- UNKNOWN: 15.86
+
+## Performance vs Benchmarks
+### Performance vs Benchmarks
+| Period | BTC | Gold | S&P 500 | BTC Alpha |
+|--------|-----|------|---------|-----------|
+| 30D | +21.2% | N/A | N/A | N/A |
+| 90D | -18.6% | N/A | N/A | N/A |
+| YTD | +18.7% | N/A | N/A | N/A |
+| 1Y | +30.8% | N/A | N/A | N/A |
+
+## Prediction Markets (Polymarket)
+### Top Predictions by Volume
+- **US government shutdown Saturday?**: Yes (100%)
+- **Who will Trump nominate as Fed Chair?**: Marc Sumerlin (0%)
+- **Who will Trump nominate as Fed Chair?**: Ron Paul (0%)
+- **Who will Trump nominate as Fed Chair?**: James Bullard (4%)
+- **Who will Trump nominate as Fed Chair?**: Howard Lutnick (0%)
+
+## BTC Driver Correlations
+Not available
+
+## Risk Calendar (Next 7 Days)
+### Crypto Events (Next 7 Days)
+- 2026-02-09: Solana Breakout to Host Three-Day Virtual Conference from February 10 to 12 [MED]
+- 2026-02-09: Solana Breakout [MED]
+
+### Macro Events (Next 7 Days)
+- 2026-02-02: Treasury Refunding Financing Estimates [MED]
+- 2026-02-02: 3-Month Bill Auction [MED]
+- 2026-02-02: 6-Month Bill Auction [MED]
+- 2026-02-02: S&P Global Manufacturing PMI Final [HIGH]
+- 2026-02-02: Fed Bostic Speech [HIGH]
+
+## Smart Money Analysis
+- Net Position: $20,030,141
+- Total Long: $24,042,480
+- Total Short: $4,012,339
+- Whale Bias: long
